@@ -1,0 +1,24 @@
+{
+  "name": "web-server",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch --env-file=../../packages/prisma/.env src/index.ts",
+    "build": "tsc",
+    "start": "tsx --env-file=../../packages/prisma/.env src/index.ts",
+    "check-types": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@repo/db": "workspace:*",
+    "dotenv": "^18.0.5",
+    "ws": "^8.19.0"
+  },
+  "devDependencies": {
+    "@repo/typescript-config": "workspace:*",
+    "@types/node": "26.4.1",
+    "@types/ws": "^8.18.1",
+    "tsx": "^4.21.0",
+    "typescript": "7.0.2"
+  }
+}

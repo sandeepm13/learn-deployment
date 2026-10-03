@@ -1,0 +1,19 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: bms
+      POSTGRES_PASSWORD: bms
+      POSTGRES_DB: bms
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bms -d bms"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - bms_pgdata:/var/lib/postgresql/data
+
+volumes:
+  bms_pgdata:

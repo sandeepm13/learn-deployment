@@ -1,0 +1,8 @@
+// use prisma-8
+
+model Task {
+  id        Int      @id @default(autoincrement())
+  title     String
+  done      Boolean  @default(false)
+  createdAt TimestamptzString @default(now())
+}
