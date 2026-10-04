@@ -5,11 +5,12 @@ node_modules
 .pnp
 .pnp.js
 
-# Local env files (keep *.env.example committed)
+# Local env files (never commit secrets or env templates with connection strings)
 .env
 .env.local
 .env.*.local
-!.env.example
+.env.example
+**/.env.example
 
 # Testing
 coverage

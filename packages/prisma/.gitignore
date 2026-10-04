@@ -1,10 +1,11 @@
 node_modules/
 dist/
 
-# Secrets — use .env.example as the template
+# Secrets — copy connection vars locally; do not commit
 .env
 .env.local
 .env.*.local
+.env.example
 
 # Prisma CLI local cache
 .prisma/
