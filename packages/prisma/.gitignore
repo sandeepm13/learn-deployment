@@ -1,3 +1,16 @@
 node_modules/
 dist/
+
+# Secrets — use .env.example as the template
 .env
+.env.local
+.env.*.local
+
+# Prisma CLI local cache
+.prisma/
+
+# Synced agent skills (not application source)
+.cursor/
+.claude/
+.agents/
+.devin/

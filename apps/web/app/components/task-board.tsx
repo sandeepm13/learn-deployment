@@ -1,6 +1,11 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import {
+  createTaskAction,
+  deleteTaskAction,
+  toggleTaskDoneAction,
+} from '../actions/tasks';
 
 type Task = {
   id: number;
@@ -9,20 +14,26 @@ type Task = {
   createdAt: string;
 };
 
-const apiBase = process.env['NEXT_PUBLIC_API_URL'] ?? 'http://localhost:4000';
-
 function wsUrl(): string {
   const fromEnv = process.env['NEXT_PUBLIC_WS_URL'];
   if (fromEnv) return fromEnv;
   return 'ws://localhost:4001/ws/tasks';
 }
 
-export function TaskBoard() {
-  const [tasks, setTasks] = useState<Task[]>([]);
+type Props = {
+  initialTasks: Task[];
+  loadError: string | null;
+};
+
+export function TaskBoard({ initialTasks, loadError }: Props) {
+  const [tasks, setTasks] = useState<Task[]>(initialTasks);
   const [title, setTitle] = useState('');
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(loadError);
   const [wsStatus, setWsStatus] = useState<'connecting' | 'live' | 'offline'>('connecting');
+
+  useEffect(() => {
+    setTasks(initialTasks);
+  }, [initialTasks]);
 
   useEffect(() => {
     const socket = new WebSocket(wsUrl());
@@ -36,33 +47,23 @@ export function TaskBoard() {
         const data = JSON.parse(String(event.data)) as { type: string; tasks?: Task[] };
         if (data.type === 'tasks' && Array.isArray(data.tasks)) {
           setTasks(data.tasks);
-          setLoading(false);
           setError(null);
         }
       } catch {
-        setError('Invalid WebSocket message from server');
+        setError('Invalid WebSocket message from web-server');
       }
     });
 
     return () => socket.close();
   }, []);
 
-  async function mutate(path: string, init?: RequestInit) {
-    setError(null);
-    const res = await fetch(`${apiBase}${path}`, init);
-    if (!res.ok) throw new Error(`API ${res.status}`);
-  }
-
   async function addTask(event: React.FormEvent) {
     event.preventDefault();
     const trimmed = title.trim();
     if (!trimmed) return;
+    setError(null);
     try {
-      await mutate('/api/tasks', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title: trimmed }),
-      });
+      await createTaskAction(trimmed);
       setTitle('');
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to add task');
@@ -70,20 +71,18 @@ export function TaskBoard() {
   }
 
   async function toggleDone(task: Task) {
+    setError(null);
     try {
-      await mutate(`/api/tasks/${task.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ done: !task.done }),
-      });
+      await toggleTaskDoneAction(task.id, !task.done);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to update task');
     }
   }
 
   async function removeTask(id: number) {
+    setError(null);
     try {
-      await mutate(`/api/tasks/${id}`, { method: 'DELETE' });
+      await deleteTaskAction(id);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to delete task');
     }
@@ -91,16 +90,17 @@ export function TaskBoard() {
 
   const statusLabel =
     wsStatus === 'live'
-      ? 'Live (WebSocket)'
+      ? 'Live (web-server WebSocket)'
       : wsStatus === 'connecting'
         ? 'Connecting WebSocket…'
         : 'WebSocket offline';
 
   return (
-    <section style={{ maxWidth: 520, margin: '0 auto' }}>
+    <section style={{ maxWidth: 560, margin: '0 auto' }}>
       <h1 style={{ fontSize: '1.75rem', marginBottom: 8 }}>BMS Task Board</h1>
       <p style={{ color: '#555', marginBottom: 8 }}>
-        Next.js web app → HTTP API (writes) + WebSocket (live list) → Prisma → PostgreSQL
+        <strong>web</strong> reads/writes PostgreSQL via Prisma ·{' '}
+        <strong>http-server</strong> REST API · <strong>web-server</strong> WebSocket
       </p>
       <p style={{ fontSize: 14, color: wsStatus === 'live' ? '#0a7' : '#888', marginBottom: 24 }}>
         {statusLabel}
@@ -120,13 +120,11 @@ export function TaskBoard() {
 
       {error && (
         <p role="alert" style={{ color: '#b00020', marginBottom: 12 }}>
-          {error} — is the API running on {apiBase}?
+          {error} — check Postgres (`pnpm db:up`) and `DATABASE_URL` in `apps/web/.env.local`
         </p>
       )}
 
-      {loading ? (
-        <p>Loading…</p>
-      ) : tasks.length === 0 ? (
+      {tasks.length === 0 ? (
         <p>No tasks yet. Add one above.</p>
       ) : (
         <ul style={{ listStyle: 'none', padding: 0, display: 'grid', gap: 8 }}>

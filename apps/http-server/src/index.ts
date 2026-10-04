@@ -5,13 +5,10 @@ import { fileURLToPath } from 'node:url';
 
 loadEnv({ path: resolve(fileURLToPath(import.meta.url), '../../../../packages/prisma/.env') });
 
-const { db, listTasks } = await import('@repo/db');
+const { db, listTasks, notifyTaskListChanged } = await import('@repo/db');
 
 const port = Number(process.env['HTTP_PORT'] ?? 4000);
 const webOrigin = process.env['WEB_ORIGIN'] ?? 'http://localhost:3000';
-const webServerNotifyUrl =
-  process.env['WEB_SERVER_NOTIFY_URL'] ?? 'http://localhost:4001/internal/broadcast';
-
 function sendJson(res: ServerResponse, status: number, body: unknown) {
   res.writeHead(status, {
     'Content-Type': 'application/json',
@@ -30,14 +27,6 @@ async function readJson(req: IncomingMessage): Promise<unknown> {
   const raw = Buffer.concat(chunks).toString('utf8').trim();
   if (!raw) return {};
   return JSON.parse(raw) as unknown;
-}
-
-async function notifyWebServer() {
-  try {
-    await fetch(webServerNotifyUrl, { method: 'POST' });
-  } catch (error) {
-    console.warn('Could not notify web-server:', error);
-  }
 }
 
 const server = createServer((req, res) => {
@@ -73,7 +62,7 @@ async function handle(req: IncomingMessage, res: ServerResponse) {
         return;
       }
       const task = await db.orm.public!.Task!.create({ title, done: false });
-      await notifyWebServer();
+      await notifyTaskListChanged();
       sendJson(res, 201, { task });
       return;
     }
@@ -101,14 +90,14 @@ async function handle(req: IncomingMessage, res: ServerResponse) {
           return;
         }
         const task = await db.orm.public!.Task!.where({ id }).update(updates);
-        await notifyWebServer();
+        await notifyTaskListChanged();
         sendJson(res, 200, { task });
         return;
       }
 
       if (req.method === 'DELETE') {
         await db.orm.public!.Task!.where({ id }).delete();
-        await notifyWebServer();
+        await notifyTaskListChanged();
         sendJson(res, 200, { ok: true });
         return;
       }
