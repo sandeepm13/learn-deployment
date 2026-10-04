@@ -7,7 +7,7 @@ loadEnv({ path: resolve(fileURLToPath(import.meta.url), '../../../../packages/pr
 
 const { db, listTasks, notifyTaskListChanged } = await import('@repo/db');
 
-const port = Number(process.env['HTTP_PORT'] ?? 4000);
+const port = Number(process.env['PORT'] ?? process.env['HTTP_PORT'] ?? 4000);
 const webOrigin = process.env['WEB_ORIGIN'] ?? 'http://localhost:3000';
 function sendJson(res: ServerResponse, status: number, body: unknown) {
   res.writeHead(status, {

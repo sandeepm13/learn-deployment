@@ -9,7 +9,7 @@ loadEnv({ path: resolve(fileURLToPath(import.meta.url), '../../../../packages/pr
 
 const { db, listTasks } = await import('@repo/db');
 
-const port = Number(process.env['WS_PORT'] ?? 4001);
+const port = Number(process.env['PORT'] ?? process.env['WS_PORT'] ?? 4001);
 const webOrigin = process.env['WEB_ORIGIN'] ?? 'http://localhost:3000';
 
 const server = createServer((req, res) => {
